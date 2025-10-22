@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "195699645499",
+    "project_id": "quicksos-4575c",
+    "storage_bucket": "quicksos-4575c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195699645499:android:b9d3b3589d4639edab501e",
+        "android_client_info": {
+          "package_name": "com.example.quicksosapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3EA48AqRPi5UrVFjfKZOOTQQBKSNUAR8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
