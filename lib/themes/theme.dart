@@ -7,6 +7,7 @@ class AppColors {
   static const Color backgroundDark = Color(0xFF1C1C1C); // Fondo general en modo oscuro
   static const Color textDark = Color(0xFFFFFFFF); // Texto principal en modo oscuro
   static const Color textSecondaryDark = Color(0xFFB0B0B0); // Texto secundario en modo oscuro
+  static const Color textDark2 = Color.fromARGB(255, 0, 0, 0); // Otro tono de texto claro para contraste
 
   // Colores para las tarjetas/contenedores de información (se ven más oscuros que el fondo general)
   static const Color cardDark = Color(0xFF282828);
@@ -27,12 +28,10 @@ final ThemeData darkTheme = ThemeData(
   primaryColor: AppColors.primaryBlue,
   colorScheme: const ColorScheme.dark(
     primary: AppColors.primaryBlue, // Color principal
-    secondary: AppColors.alertAccident, // Color secundario (usado a menudo para acentos)
-    background: AppColors.backgroundDark, // Color de fondo
+    secondary: AppColors.alertAccident, // Color de fondo
     surface: AppColors.cardDark, // Color para tarjetas y superficies
     error: AppColors.alertFire, // Color de error
-    onPrimary: AppColors.textDark, // Color de texto sobre el color primario
-    onBackground: AppColors.textDark, // Color de texto sobre el fondo
+    onPrimary: AppColors.textDark, // Color de texto sobre el fondo
     onSurface: AppColors.textDark, // Color de texto sobre las superficies
   ),
 
@@ -75,8 +74,8 @@ final ThemeData darkTheme = ThemeData(
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: AppColors.cardDark, // Fondo del campo de texto
-    hintStyle: const TextStyle(color: AppColors.textSecondaryDark),
-    labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+    hintStyle: const TextStyle(color: AppColors.textDark2),
+    labelStyle: const TextStyle(color: AppColors.textDark2),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8.0),
       borderSide: BorderSide.none, // Borde invisible (se usa el relleno)
@@ -97,7 +96,7 @@ final ThemeData darkTheme = ThemeData(
     // Estilo para el texto de las tarjetas o subtítulos
     titleMedium: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600, fontSize: 18),
     // Texto de cuerpo normal
-    bodyLarge: TextStyle(color: AppColors.textDark, fontSize: 16),
+    bodyLarge: TextStyle(color: AppColors.textDark2, fontSize: 16),
     // Texto secundario (como el de la información del perfil)
     bodyMedium: TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
   ),
@@ -117,12 +116,10 @@ final ThemeData lightTheme = ThemeData(
   primaryColor: AppColors.primaryBlue,
   colorScheme: const ColorScheme.light(
     primary: AppColors.primaryBlue,
-    secondary: AppColors.alertAccident,
-    background: Color(0xFFF5F5F5), // Fondo claro
+    secondary: AppColors.alertAccident, // Fondo claro
     surface: Color(0xFFFFFFFF), // Superficie/Tarjetas claras
     error: AppColors.alertFire,
-    onPrimary: AppColors.textDark, // Texto blanco sobre azul
-    onBackground: Color(0xFF000000), // Texto negro sobre fondo claro
+    onPrimary: AppColors.textDark, // Texto negro sobre fondo claro
     onSurface: Color(0xFF000000), // Texto negro sobre superficie clara
   ),
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quicksosapp/screens/login_screen.dart';
 import 'package:quicksosapp/screens/main_screen.dart';
 import 'package:quicksosapp/screens/sign_up.dart';
+import 'package:quicksosapp/themes/theme.dart';
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -11,6 +12,7 @@ class MainApp extends StatelessWidget {
     return  MaterialApp(
       title: 'Quick SOS App',
       debugShowCheckedModeBanner: false,
+      theme: darkTheme,
       home: const LoginScreen(),
       routes: {
             '/login': (context) => const LoginScreen(),
