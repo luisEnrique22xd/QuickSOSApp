@@ -36,7 +36,7 @@ class CustomBottomNavBar extends StatelessWidget {
             iconSize: 30,
             showSelectedLabels: false,  // 🔽 Oculta texto seleccionado
             showUnselectedLabels: false,  // 🔽 Oculta texto no seleccionado
-            selectedItemColor: Colors.yellow[700],
+            selectedItemColor: Colors.blue[400],
             unselectedItemColor: Colors.grey[400],
             elevation: 0,
             items: const [
@@ -45,11 +45,11 @@ class CustomBottomNavBar extends StatelessWidget {
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.notifications_active),
+                icon: Icon(Icons.warning),
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map),
+                icon: Icon(Icons.location_on),
                 label: '',
               ),
               BottomNavigationBarItem(

@@ -19,6 +19,8 @@ class AppColors {
   static const Color alertLow = Color(0xFF4CAF50); // Verde para "Low"
   static const Color alertMedium = Color(0xFFFFC107); // Amarillo para "Medium"
   static const Color alertHigh = Color(0xFFE53935); // Rojo para "High"
+  static const Color inputs = Color.fromARGB(255, 255, 255, 255); // Rojo para "High"
+
 }
 
 // Tema Oscuro (DarkTheme) - Predominante en la imagen
@@ -73,7 +75,7 @@ final ThemeData darkTheme = ThemeData(
   // Input Decoration Theme (Para campos de texto como Email y Password)
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: AppColors.cardDark, // Fondo del campo de texto
+    fillColor: AppColors.inputs, // Fondo del campo de texto
     hintStyle: const TextStyle(color: AppColors.textDark2),
     labelStyle: const TextStyle(color: AppColors.textDark2),
     border: OutlineInputBorder(
