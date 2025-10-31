@@ -10,7 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:quicksosapp/components/local_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_messaging/firebase_messaging.dart'; // Para Notificaciones
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 🌟 Importación de Firestore 🌟
 
 
 var logger = Logger(
@@ -34,11 +35,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final String userGender = "Male";
+  
   bool _notificationsEnabled = false;
   File? _imageFile;
-  // <--- NUEVO: Añade una Key para forzar la reconstrucción de la imagen --->
-   @override
+  
+  @override
   void initState() {
     super.initState();
     _loadSavedImage();
@@ -54,46 +55,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (path != null && await File(path).exists()) {
       setState(() {
         _imageFile = File(path);
-        // <--- NUEVO: Actualiza la key también al cargar la imagen inicial --->
         _imageAvatarKey = ValueKey(
           path + DateTime.now().toIso8601String(),
-        ); // Usa path + timestamp para asegurar unicidad
+        ); 
       });
     }
   }
   Future<void> _checkNotificationStatus() async {
     final status = await Permission.notification.status;
 
-    // Firebase Messaging también proporciona información de estado
     final settings = await FirebaseMessaging.instance.getNotificationSettings();
 
     setState(() {
-      // Si el estado es concedido (o autorizado por FCM), el switch debe estar encendido
       _notificationsEnabled = status.isGranted || settings.authorizationStatus == AuthorizationStatus.authorized;
     });
   }
 
-  // 3. Lógica para manejar el cambio de switch
   void _toggleNotifications(bool newValue) async {
     if (newValue) {
-      // Si el usuario quiere activarlas, las solicitamos
       final status = await Permission.notification.request();
       if (status.isGranted) {
-        // Si se concedió el permiso
         setState(() {
           _notificationsEnabled = true;
         });
-        // Opcional: Manejar la suscripción a temas de FCM aquí
       } else if (status.isDenied || status.isPermanentlyDenied) {
-        // Si el usuario denegó o denegó permanentemente, lo llevamos a la configuración
         await openAppSettings();
-        // Después de que el usuario regrese de la configuración, comprobamos de nuevo
         _checkNotificationStatus(); 
       }
     } else {
-      // Si el usuario quiere desactivarlas, lo llevamos a la configuración para que las apague
       await openAppSettings();
-      _checkNotificationStatus(); // Comprobamos el estado al regresar
+      _checkNotificationStatus(); 
     }
   }
 
@@ -128,7 +119,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final fileName = 'profile_image.jpg';
     final localPath = '${directory.path}/$fileName';
 
-    // Guardamos la imagen redimensionada, sobrescribiendo la anterior
     final savedImage = await File(
       localPath,
     ).writeAsBytes(img.encodeJpg(resizedImage, quality: 85));
@@ -138,10 +128,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() {
       _imageFile = savedImage;
-      // <--- CLAVE: Actualiza la key cada vez que la imagen es guardada --->
       _imageAvatarKey = ValueKey(
         savedImage.path + DateTime.now().toIso8601String(),
-      ); // Nueva key basada en path y timestamp
+      ); 
     });
 
     if (mounted) {
@@ -158,10 +147,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     }
   }
-  @override
-  Widget build(BuildContext context) {
+  
+  // Widget auxiliar para construir el cuerpo de la pantalla después de cargar los datos
+  Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
+    // 🌟 2. Extraer datos de Firestore, usando el operador ?? para un fallback 🌟
+    final userNameFromDB = userData?['username'] ?? 'N/A';
+    final phoneNumber = userData?['phone'] ?? 'N/A';
+    final location = userData?['location'] ?? 'N/A';
+    final userGender = userData?['gender'] ?? 'N/A';
+    
     IconData iconData;
-
     if (userGender == 'Male') {
       iconData = Icons.male_rounded;
     } else if (userGender == 'Female') {
@@ -169,136 +164,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else if (userGender == 'Transgender') {
       iconData = Icons.transgender_sharp;
     } else {
-      iconData = Icons.person; // Default or unknown gender icon
+      iconData = Icons.person;
     }
 
-    final String username =
-        FirebaseAuth.instance.currentUser?.email ?? 'Unknown User';
-    return  Scaffold(
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // FOTO DE PERFIL
+        Center(
+          child: GestureDetector(
+            onTap: _pickAndSaveImageLocally,
+            child: CircleAvatar(
+              key: _imageAvatarKey, 
+              radius: 50,
+              backgroundColor: Colors.grey[800],
+              backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+              child: _imageFile == null ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: Text(
+            'Hi, $userNameFromDB', // Usamos el nombre de usuario de la DB
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          ),
+        ),
+        const Divider(height: 32),
+        
+        // 🌟 DATOS DE PERFIL (Desde Firestore) 🌟
+        ListTile(
+          leading: const Icon(Icons.person_outline, color: Colors.white),
+          title: Text(
+            'User Name: \n $userNameFromDB', // Usamos el nombre de usuario
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.mail, color: Colors.white),
+          title: Text(
+            'Email: \n$email', // Usamos el email de Auth
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.phone, color: Colors.white),
+          title: Text(
+            'Telefono: \n$phoneNumber', // Usamos el teléfono de la DB
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.home, color: Colors.white),
+          title: Text(
+            'Ubicacion: \n$location', // Usamos la ubicación de la DB
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        ListTile(
+          leading: Icon(iconData, color: Colors.white),
+          title: Text(
+            'Genero: \n$userGender', // Usamos el género de la DB
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        const Divider(height: 32,),
+        
+        // GESTIÓN DE NOTIFICACIONES
+        ListTile(
+          leading: const Icon(Icons.notifications, color: Colors.white),
+          title: const Text(
+            'Notificaciones',
+            style: TextStyle(color: Colors.white),
+          ),
+          trailing: Switch(
+            value: _notificationsEnabled, 
+            onChanged: _toggleNotifications, 
+            activeColor: Colors.blue[600], 
+            inactiveThumbColor: Colors.grey[400],
+            inactiveTrackColor: Colors.grey[700],
+          ),
+        ),
+        
+        // IDIOMA
+        ListTile(
+          leading: const Icon(Icons.language, color: Colors.white),
+          title: const Text(
+            'Idioma',
+            style: TextStyle(color: Colors.white),
+          ),
+          subtitle: Text(
+            Localizations.localeOf(context).languageCode == 'es'
+                ? 'Español'
+                : 'English',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          onTap: () {
+            final provider = Provider.of<LocaleProvider>(context, listen: false);
+            final currentLocale = Localizations.localeOf(context);
+
+            if (currentLocale.languageCode == 'en') {
+              provider.setLocale(const Locale('es'));
+            } else {
+              provider.setLocale(const Locale('en'));
+            }
+          },
+        ),
+        // CERRAR SESIÓN
+        ListTile(
+          leading: const Icon(Icons.logout, color: Colors.red),
+          title: const Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
+          onTap: _logout,
+        ),
+      ],
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Error: Usuario no autenticado', style: TextStyle(color: Colors.white))),
+      );
+    }
+    
+    // 1. Obtener la referencia al documento del perfil
+    // Usamos 'users' como la colección donde guardas el perfil
+    final DocumentReference userDocRef = 
+        FirebaseFirestore.instance.collection('users').doc(user.uid); 
+    
+    // 🌟 2. Usar StreamBuilder para escuchar el documento 🌟
+    return Scaffold(
       appBar: AppBar(
-        // title:  Text(AppLocalizations.of(context)!.account,),
         title: const Text("Perfil"),
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: GestureDetector(
-              onTap: _pickAndSaveImageLocally,
-              child: CircleAvatar(
-                key: _imageAvatarKey, // <--- APLICA LA KEY AQUÍ --->
-                radius: 50,
-                backgroundColor: Colors.grey[800],
-                backgroundImage: _imageFile != null
-                    ? FileImage(_imageFile!)
-                    : null,
-                child: _imageFile == null
-                    ? const Icon(Icons.person, size: 50, color: Colors.white)
-                    : null,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              // // 'Hi, $username 👋',
-              // AppLocalizations.of(context)!.hiUser(username),
-              'Hi, $username',
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ),
-          const Divider(height: 32),
-          ListTile(
-            leading: const Icon(Icons.person_outline, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'User Name: \n Kike22',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.mail, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'Email: \n$username',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.phone, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'Telefono: \n2471399840',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'Ubicacion: \nHuamantla,Tlaxcala',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          ListTile(
-            leading:  Icon(iconData, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'Genero: \nMasculino',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          const Divider(height: 32,),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: userDocRef.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            logger.e('Error cargando perfil: ${snapshot.error}');
+            return const Center(child: Text('Error al cargar el perfil.', style: TextStyle(color: Colors.white)));
+          }
           
-          ListTile(
-            leading: const Icon(Icons.notifications, color: Colors.white),
-            title: Text(
-              // AppLocalizations.of(context)!.notifications,
-              'Notificaciones',
-              style: TextStyle(color: Colors.white),
-            ),
-            trailing: Switch(value: _notificationsEnabled, onChanged: (newValue) {
-              _toggleNotifications(newValue);
-            },activeColor: Colors.blue[600], // Color cuando está activo
-    inactiveThumbColor: Colors.grey[400],
-    inactiveTrackColor: Colors.grey[700],),
-          ),
-          ListTile(
-            leading: const Icon(Icons.language, color: Colors.white),
-            title:  Text(
-              // AppLocalizations.of(context)!.language,
-              'Idioma',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              Localizations.localeOf(context).languageCode == 'es'
-                  ? 'Español'
-                  : 'English',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            onTap: () {
-              final provider = Provider.of<LocaleProvider>(
-                context,
-                listen: false,
-              );
-              final currentLocale = Localizations.localeOf(context);
+          final userData = snapshot.data?.data() as Map<String, dynamic>?;
 
-              if (currentLocale.languageCode == 'en') {
-                provider.setLocale(const Locale('es'));
-              } else {
-                provider.setLocale(const Locale('en'));
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            // title:  Text(AppLocalizations.of(context)!.logOut, style: TextStyle(color: Colors.red)),
-            title:  Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
-            onTap: _logout,
-          ),
-        ],
+          if (userData == null) {
+            // Este caso ocurre si el documento existe pero está vacío o si no existe
+            return Center(child: Text('Perfil no encontrado o vacío. UID: ${user.uid}', style: const TextStyle(color: Colors.white)));
+          }
+          
+          // 3. Renderizar el cuerpo de la pantalla con los datos cargados
+          return _buildProfileBody(userData, user.email ?? 'Email no disponible');
+        },
       ),
     );
   }

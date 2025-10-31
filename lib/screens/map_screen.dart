@@ -13,6 +13,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   String activeFilter = "All";
+  
   @override
   Widget build(BuildContext context) {
     return  Scaffold(

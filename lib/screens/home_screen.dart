@@ -1,10 +1,21 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:logger/logger.dart';
 import 'package:quicksosapp/components/mapa.dart';
-import 'package:quicksosapp/components/navbar.dart';
+
+var logger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 0,
+    errorMethodCount: 5,
+    lineLength: 50,
+    colors: true,
+    printEmojis: true,
+    dateTimeFormat: DateTimeFormat.none,
+  ),
+  filter: DevelopmentFilter(),
+);
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,15 +28,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final String username =
       FirebaseAuth.instance.currentUser?.email ?? 'Unknown User';
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inicio'),
-      ),
-      // 🌟 CAMBIO NECESARIO 1: Envuelve el cuerpo en SingleChildScrollView 🌟
-      // Esto permite el scroll y evita el desbordamiento de la pantalla principal.
-      body: SingleChildScrollView(
+Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
+   final userNameFromDB = userData?['username'] ?? 'N/A';
+    // final phoneNumber = userData?['phone'] ?? 'N/A';
+    // final location = userData?['location'] ?? 'N/A';
+    // final userGender = userData?['gender'] ?? 'N/A';
+  return SingleChildScrollView(
         child: Column(
           children: [
             // ... (Tarjeta de perfil) ...
@@ -38,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: 
-                      Text("Name \n$username", style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),),
+                      Text('Hi, $userNameFromDB', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),),
                     )),
                 ],
               ),
@@ -164,7 +172,51 @@ class _HomeScreenState extends State<HomeScreen> {
            
           ],
         ),
-      ), 
+      );
+}
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Error: Usuario no autenticado', style: TextStyle(color: Colors.white))),
+      );
+    }
+    
+    // 1. Obtener la referencia al documento del perfil
+    // Usamos 'users' como la colección donde guardas el perfil
+    final DocumentReference userDocRef = 
+        FirebaseFirestore.instance.collection('users').doc(user.uid); 
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Inicio'),
+      ),
+      // 🌟 CAMBIO NECESARIO 1: Envuelve el cuerpo en SingleChildScrollView 🌟
+      // Esto permite el scroll y evita el desbordamiento de la pantalla principal.
+      body:  StreamBuilder<DocumentSnapshot>(
+        stream: userDocRef.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            logger.e('Error cargando perfil: ${snapshot.error}');
+            return const Center(child: Text('Error al cargar el perfil.', style: TextStyle(color: Colors.white)));
+          }
+          
+          final userData = snapshot.data?.data() as Map<String, dynamic>?;
+
+          if (userData == null) {
+            // Este caso ocurre si el documento existe pero está vacío o si no existe
+            return Center(child: Text('Perfil no encontrado o vacío. UID: ${user.uid}', style: const TextStyle(color: Colors.white)));
+          }
+          
+          // 3. Renderizar el cuerpo de la pantalla con los datos cargados
+          return _buildProfileBody(userData, user.email ?? 'Email no disponible');
+        },
+      ),
     );
   }
 }
