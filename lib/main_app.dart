@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quicksosapp/components/auth_guard.dart';
 import 'package:quicksosapp/screens/alert_screen.dart';
+import 'package:quicksosapp/screens/create_alert.dart';
 import 'package:quicksosapp/screens/home_screen.dart';
 import 'package:quicksosapp/screens/login_screen.dart';
 import 'package:quicksosapp/screens/main_screen.dart';
@@ -26,6 +27,7 @@ class MainApp extends StatelessWidget {
             '/alerts': (context) => const AuthGuard(child: AlertScreen()),
             '/map': (context) => const AuthGuard(child: MapScreen()),
             '/account': (context) => const AuthGuard(child: ProfileScreen()),
+            '/alert': (context) =>  AuthGuard(child: CreateAlert()),
             '/main': (context) =>  MainScreen(),
             
           },

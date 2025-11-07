@@ -204,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onTap: isLoading ? null : login,
                 child: Container(
                   padding: const EdgeInsets.all(15),
-                  margin: const EdgeInsets.symmetric(horizontal: 125),
+                  margin: const EdgeInsets.symmetric(horizontal: 120),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(25),

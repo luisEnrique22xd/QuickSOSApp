@@ -121,7 +121,7 @@ class AlertCard extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
-                       const SizedBox(width: 170),
+                       const SizedBox(width: 155),
             Column(
               children: [
                 Row(

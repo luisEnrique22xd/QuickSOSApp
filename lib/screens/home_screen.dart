@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:logger/logger.dart';
 import 'package:quicksosapp/components/mapa.dart';
@@ -17,6 +20,52 @@ var logger = Logger(
   filter: DevelopmentFilter(),
 );
 
+// Definir una instancia del ImagePicker
+final ImagePicker _picker = ImagePicker();
+
+// 🌟 Función para Abrir la Cámara y Tomar una Foto 🌟
+Future<File?> takePictureFromCamera() async {
+  try {
+    // Llama al método para obtener la imagen de la CÁMARA
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024, // Opcional: limita el tamaño para rendimiento
+      maxHeight: 1024,
+      imageQuality: 80, // Opcional: calidad de compresión
+    );
+
+    if (photo != null) {
+      // Retorna el archivo File de Dart
+      return File(photo.path);
+    } else {
+      // El usuario canceló la operación
+      return null;
+    }
+  } catch (e) {
+    print('Error al acceder a la cámara: $e');
+    return null;
+  }
+}
+
+// 🌟 Función para Abrir la Galería (Ejemplo) 🌟
+Future<File?> pickImageFromGallery() async {
+  try {
+    // Llama al método para obtener la imagen de la GALERÍA
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image != null) {
+      return File(image.path);
+    } else {
+      return null;
+    }
+  } catch (e) {
+    print('Error al acceder a la galería: $e');
+    return null;
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -25,6 +74,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  File? _capturedImage;
+
+void _capturePhoto() async {
+  final result = await takePictureFromCamera();
+  if (result != null) {
+    setState(() {
+      _capturedImage = result;
+    });
+    // Aquí puedes subir el archivo a Firebase Storage si es una alerta
+  }
+}
   final String username =
       FirebaseAuth.instance.currentUser?.email ?? 'Unknown User';
 
@@ -39,15 +99,12 @@ Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
             // ... (Tarjeta de perfil) ...
             Center(
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Card(
-                    color: Colors.grey[700],
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: 
-                      Text('Hi, $userNameFromDB', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),),
-                    )),
+                      Text('Hola, $userNameFromDB', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),),
+                  
+                    SizedBox(width: 20),
+                    ElevatedButton(onPressed:()=> Navigator.pushReplacementNamed(context, '/alert'),style: ElevatedButton.styleFrom(fixedSize: const Size( 110,60)),child: Text("Crear una alerta", style: TextStyle(fontFamily: "samsungsharpsans", fontWeight: FontWeight.w500, fontSize:  12),))
                 ],
               ),
             ),
