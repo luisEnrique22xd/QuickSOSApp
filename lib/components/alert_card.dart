@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AlertCard extends StatelessWidget {
   final String type; // Fire, Robbery, Accident
   final String time;
-  final String address;
+  final String description;
   final String priority;
   final String imageUrl; // Puede ser una URL o asset local
   final Color priorityColor;
@@ -14,7 +14,7 @@ class AlertCard extends StatelessWidget {
     super.key,
     required this.type,
     required this.time,
-    required this.address,
+    required this.description,
     required this.priority,
     required this.imageUrl,
     required this.priorityColor,
@@ -93,9 +93,9 @@ class AlertCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Dirección
+                  //Dirección
                   Text(
-                    address,
+                    description,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 13,

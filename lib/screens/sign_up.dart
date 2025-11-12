@@ -76,6 +76,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // Navegar al login
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/login');
+          ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('¡Cuenta creada con éxito!')),
+      );
         }
       } else {
         if (mounted) {

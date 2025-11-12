@@ -20,46 +20,28 @@ var logger = Logger(
   filter: DevelopmentFilter(),
 );
 
-// Definir una instancia del ImagePicker
 final ImagePicker _picker = ImagePicker();
+String activeFilter = "All";
 
-// 🌟 Función para Abrir la Cámara y Tomar una Foto 🌟
 Future<File?> takePictureFromCamera() async {
   try {
-    // Llama al método para obtener la imagen de la CÁMARA
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
-      maxWidth: 1024, // Opcional: limita el tamaño para rendimiento
+      maxWidth: 1024,
       maxHeight: 1024,
-      imageQuality: 80, // Opcional: calidad de compresión
+      imageQuality: 80,
     );
-
-    if (photo != null) {
-      // Retorna el archivo File de Dart
-      return File(photo.path);
-    } else {
-      // El usuario canceló la operación
-      return null;
-    }
+    return photo != null ? File(photo.path) : null;
   } catch (e) {
     print('Error al acceder a la cámara: $e');
     return null;
   }
 }
 
-// 🌟 Función para Abrir la Galería (Ejemplo) 🌟
 Future<File?> pickImageFromGallery() async {
   try {
-    // Llama al método para obtener la imagen de la GALERÍA
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-    );
-
-    if (image != null) {
-      return File(image.path);
-    } else {
-      return null;
-    }
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    return image != null ? File(image.path) : null;
   } catch (e) {
     print('Error al acceder a la galería: $e');
     return null;
@@ -74,185 +56,204 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String activeFilter = "All";
+  Map<String, dynamic>? selectedAlert; // Alerta seleccionada en el mapa
+  bool showDetails = false; // Controla si se muestra el panel
   File? _capturedImage;
 
-void _capturePhoto() async {
-  final result = await takePictureFromCamera();
-  if (result != null) {
-    setState(() {
-      _capturedImage = result;
-    });
-    // Aquí puedes subir el archivo a Firebase Storage si es una alerta
+  void _capturePhoto() async {
+    final result = await takePictureFromCamera();
+    if (result != null) {
+      setState(() {
+        _capturedImage = result;
+      });
+    }
   }
-}
+  void _onAlertSelected(Map<String, dynamic> alert) {
+    setState(() {
+      selectedAlert = alert;
+      showDetails = true;
+    });
+  }
+
   final String username =
       FirebaseAuth.instance.currentUser?.email ?? 'Unknown User';
 
-Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
-   final userNameFromDB = userData?['username'] ?? 'N/A';
-    // final phoneNumber = userData?['phone'] ?? 'N/A';
-    // final location = userData?['location'] ?? 'N/A';
-    // final userGender = userData?['gender'] ?? 'N/A';
-  return SingleChildScrollView(
-        child: Column(
-          children: [
-            // ... (Tarjeta de perfil) ...
-            Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                      Text('Hola, $userNameFromDB', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white),),
-                  
-                    SizedBox(width: 20),
-                    ElevatedButton(onPressed:()=> Navigator.pushReplacementNamed(context, '/alert'),style: ElevatedButton.styleFrom(fixedSize: const Size( 110,60)),child: Text("Crear una alerta", style: TextStyle(fontFamily: "samsungsharpsans", fontWeight: FontWeight.w500, fontSize:  12),))
-                ],
-              ),
+  // 🔥 --- Contadores dinámicos de alertas ---
+  Widget _buildAlertStats() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('alerts').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Colors.amber));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No hay alertas registradas',
+              style: TextStyle(color: Colors.white, fontFamily: 'samsungsharpsans'),
             ),
-            
-            const SizedBox(height: 20),
+          );
+        }
 
-            // ... (Fila de tarjetas de alerta) ...
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const SizedBox(width: 8,), 
-                // 1. CARD: INCENDIOS 
-                Expanded(
-                  child: Card(
-                    color: Colors.grey[800],
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              Flexible(child: const Text('Incendios', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Totales: 2',
-                            style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          Image.asset(
-                            'assets/images/fire.png', 
-                            width: 24, 
-                            height: 24,
-                          ),
-                        ],
-                      ),
-                    ),
+        final alerts = snapshot.data!.docs;
+        Map<String, int> counts = {
+          'Incendio': 0,
+          'Robo': 0,
+          'Accidente': 0,
+        };
+
+        for (var doc in alerts) {
+          final data = doc.data() as Map<String, dynamic>;
+          final type = data['alertType'] ?? '';
+          if (counts.containsKey(type)) {
+            counts[type] = counts[type]! + 1;
+          }
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildAlertCard(
+                title: 'Incendios',
+                total: counts['Incendio'] ?? 0,
+                imagePath: 'assets/images/fire.png',
+              ),
+              const SizedBox(width: 8),
+              _buildAlertCard(
+                title: 'Robos',
+                total: counts['Robo'] ?? 0,
+                imagePath: 'assets/images/robbery.png',
+              ),
+              const SizedBox(width: 8),
+              _buildAlertCard(
+                title: 'Accidentes',
+                total: counts['Accidente'] ?? 0,
+                imagePath: 'assets/images/accident.png',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAlertCard({
+    required String title,
+    required int total,
+    required String imagePath,
+  }) {
+    return SizedBox(
+      width: 140,
+      child: Card(
+        color: Colors.grey[800],
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'samsungsharpsans',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Totales: $total',
+                style: const TextStyle(
+                  fontFamily: 'samsungsharpsans',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Image.asset(imagePath, width: 28, height: 28),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
+    final userNameFromDB = userData?['username'] ?? 'N/A';
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Text(
+                  'Hola, $userNameFromDB',
+                  style: const TextStyle(
+                    fontFamily: 'samsungsharpsans',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-
-                const SizedBox(width: 8,),
-                // 2. CARD: ROBOS
-                Expanded(
-                  child: Card(
-                    color: Colors.grey[800],
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              Flexible(child: const Text('Robos', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Totales: 3',
-                            style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          Image.asset(
-                            'assets/images/robbery.png',
-                            width: 24,
-                            height: 24,
-                          ),
-                        ],
-                      ),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/alert'),
+                  style: ElevatedButton.styleFrom(fixedSize: const Size(110, 60)),
+                  child: const Text(
+                    "Crear una alerta",
+                    style: TextStyle(
+                      fontFamily: "samsungsharpsans",
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
                     ),
                   ),
-                ),
-
-                const SizedBox(width: 8,),
-
-                // 3. CARD: ACCIDENTES
-                Expanded(
-                  child: Card(
-                    color: Colors.grey[800],
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              Flexible(child: const Text('Accidentes', style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Totales: 6',
-                            style: TextStyle(fontFamily: 'samsungsharpsans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          Image.asset(
-                            'assets/images/accident.png', 
-                            width: 24,
-                            height: 24,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8,), 
+                )
               ],
             ),
-            
-            const SizedBox(height: 20),
-            
-            // ... (Tarjeta del mapa) ...
-           AlertMapCard(initialCenter: LatLng(19.312968, -97.922873), onMapTap: (point) {
-    print("Coordenadas seleccionadas: ${point.latitude}, ${point.longitude}");
-  },),
-            const SizedBox(height: 8), // Margen inferior para el scroll
-           
-          ],
-        ),
-      );
-}
+          ),
+          const SizedBox(height: 20),
+          _buildAlertStats(), // 🔥 Contadores dinámicos
+          const SizedBox(height: 20),
+          AlertMapCard(
+            initialCenter: LatLng(19.312968, -97.922873),
+             filterType: activeFilter, // <- filtrado dinámico
+            onAlertSelected: _onAlertSelected,
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return const Scaffold(
-        body: Center(child: Text('Error: Usuario no autenticado', style: TextStyle(color: Colors.white))),
+        body: Center(
+          child: Text(
+            'Error: Usuario no autenticado',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
       );
     }
-    
-    // 1. Obtener la referencia al documento del perfil
-    // Usamos 'users' como la colección donde guardas el perfil
-    final DocumentReference userDocRef = 
-        FirebaseFirestore.instance.collection('users').doc(user.uid); 
+
+    final DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inicio'),
-      ),
-      // 🌟 CAMBIO NECESARIO 1: Envuelve el cuerpo en SingleChildScrollView 🌟
-      // Esto permite el scroll y evita el desbordamiento de la pantalla principal.
-      body:  StreamBuilder<DocumentSnapshot>(
+      appBar: AppBar(title: const Text('Inicio')),
+      body: StreamBuilder<DocumentSnapshot>(
         stream: userDocRef.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -260,17 +261,22 @@ Widget _buildProfileBody(Map<String, dynamic>? userData, String email) {
           }
           if (snapshot.hasError) {
             logger.e('Error cargando perfil: ${snapshot.error}');
-            return const Center(child: Text('Error al cargar el perfil.', style: TextStyle(color: Colors.white)));
+            return const Center(
+              child: Text('Error al cargar el perfil.', style: TextStyle(color: Colors.white)),
+            );
           }
-          
+
           final userData = snapshot.data?.data() as Map<String, dynamic>?;
 
           if (userData == null) {
-            // Este caso ocurre si el documento existe pero está vacío o si no existe
-            return Center(child: Text('Perfil no encontrado o vacío. UID: ${user.uid}', style: const TextStyle(color: Colors.white)));
+            return Center(
+              child: Text(
+                'Perfil no encontrado o vacío. UID: ${user.uid}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
           }
-          
-          // 3. Renderizar el cuerpo de la pantalla con los datos cargados
+
           return _buildProfileBody(userData, user.email ?? 'Email no disponible');
         },
       ),

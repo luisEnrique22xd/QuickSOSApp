@@ -15,22 +15,22 @@ class AlertFilterBar extends StatelessWidget {
     final List<Map<String, dynamic>> filters = [
     
     {
-      'label': 'Fires',
+      'label': 'Incendios',
       'color': Colors.redAccent,
       'icon': Icons.local_fire_department,
-      'value': 'Fire'
+      'value': 'Incendio'
     },
     {
-      'label': 'Robberys',
+      'label': 'Robos',
       'color': Colors.blueGrey,
       'icon': Icons.local_police,
-      'value': 'Robbery'
+      'value': 'Robo'
     },
     {
-      'label': 'Accidents',
+      'label': 'Accidentes',
       'color': Colors.amber,
       'icon': Icons.warning,
-      'value': 'Accident'
+      'value': 'Accidente'
     },
   ];
 
@@ -42,7 +42,7 @@ class AlertFilterBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6.0),
             child: ChoiceChip(
-              label: const Text("All"),
+              label: const Text("Todo"),
               selected: activeFilter == "All",
               onSelected: (_) => onFilterSelected("All"),
               selectedColor: Colors.green,
