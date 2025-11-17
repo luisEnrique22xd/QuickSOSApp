@@ -93,7 +93,7 @@ class _MapScreenState extends State<MapScreen> {
                     margin: const EdgeInsets.all(12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.grey[800],
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(

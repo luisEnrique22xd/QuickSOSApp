@@ -28,6 +28,29 @@ class _AlertMapCardState extends State<AlertMapCard> {
 
   @override
   Widget build(BuildContext context) {
+     // Definimos la consulta base de Firestore
+    Query baseQuery = FirebaseFirestore.instance
+        .collection('alerts')
+        .where('status', isEqualTo: 'active');
+
+    // 🌟 LÓGICA DE FILTRADO 🌟
+    // Si el filtro no es "All", aplicamos una cláusula WHERE adicional.
+    if (widget.filterType != "All") {
+      // Nota: Firestore es sensible a mayúsculas/minúsculas.
+      // Asumo que el campo en Firestore es 'alertType' y contiene 'Incendio', 'Robo', etc.
+      baseQuery = baseQuery.where('alertType', isEqualTo: widget.filterType);
+    }
+    
+    // Si la alerta seleccionada actualmente ya no coincide con el filtro, la ocultamos.
+    if (selectedAlert != null && widget.filterType != "All" && selectedAlert!['alertType'] != widget.filterType) {
+        // Debemos limpiar la alerta seleccionada al cambiar de filtro
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+                selectedAlert = null;
+            });
+        });
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Card(
@@ -39,17 +62,23 @@ class _AlertMapCardState extends State<AlertMapCard> {
           child: Column(
             children: [
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('alerts')
-                    .where('status', isEqualTo: 'active')
-                    .snapshots(),
+                // ⬅️ 1. Usamos la consulta dinámica (baseQuery.snapshots())
+                stream: baseQuery.snapshots(), 
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 300,
+                      child: Center(child: CircularProgressIndicator()),
                     );
                   }
 
+                  if (snapshot.hasError) {
+                      return const SizedBox(
+                        height: 300,
+                        child: Center(child: Text("Error al cargar marcadores.", style: TextStyle(color: Colors.red))),
+                      );
+                  }
+                  
                   final alerts = snapshot.data!.docs;
 
                   return SizedBox(
@@ -61,7 +90,7 @@ class _AlertMapCardState extends State<AlertMapCard> {
                         initialZoom: widget.initialZoom,
                         onTap: (tapPosition, point) {
                           setState(() {
-                            selectedPoint = null;
+                            // Limpia la selección al hacer tap en el mapa
                             selectedAlert = null;
                           });
                         },
@@ -74,7 +103,7 @@ class _AlertMapCardState extends State<AlertMapCard> {
                           userAgentPackageName: 'com.yourcompany.yourappname',
                         ),
 
-                        // Marcadores dinámicos
+                        // ⬅️ 2. Marcadores dinámicos filtrados por el Stream
                         MarkerLayer(
                           markers: alerts.map((alertDoc) {
                             final data =
@@ -107,8 +136,9 @@ class _AlertMapCardState extends State<AlertMapCard> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    selectedPoint = point;
                                     selectedAlert = data;
+                                    // 🌟 Llamar al callback para MapScreen
+                                    widget.onAlertSelected(data);
                                   });
                                 },
                                 child: Icon(
@@ -147,16 +177,16 @@ class _AlertMapCardState extends State<AlertMapCard> {
 
               // Card con la información de la alerta seleccionada
               // Card con animación al aparecer/desaparecer
-AnimatedSwitcher(
-  duration: const Duration(milliseconds: 300),
-  transitionBuilder: (child, animation) => FadeTransition(
-    opacity: animation,
-    child: child,
-  ),
-  child: selectedAlert != null
-      ? _buildAlertInfoCard(selectedAlert!)
-      : const SizedBox.shrink(),
-),
+// AnimatedSwitcher(
+//   duration: const Duration(milliseconds: 300),
+//   transitionBuilder: (child, animation) => FadeTransition(
+//     opacity: animation,
+//     child: child,
+//   ),
+//   child: selectedAlert != null
+//       ? _buildAlertInfoCard(selectedAlert!)
+//       : const SizedBox.shrink(),
+// ),
 
             ],
           ),
@@ -165,94 +195,94 @@ AnimatedSwitcher(
     );
   }
 
-  Widget _buildAlertInfoCard(Map<String, dynamic> alert) {
-  return Container(
-    margin: const EdgeInsets.only(top: 10),
-    decoration: BoxDecoration(
-      color: Colors.grey[900],
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Stack(
-      children: [
-        // --- Contenido principal ---
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (alert['imageUrl'] != null && alert['imageUrl'].toString().isNotEmpty)
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(
-                  alert['imageUrl'],
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    alert['title'] ?? 'Sin título',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'samsungsharpssans',
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    alert['description'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'samsungsharpssans',
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "Tipo: ${alert['alertType']}",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                      fontFamily: 'samsungsharpssans',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+//   Widget _buildAlertInfoCard(Map<String, dynamic> alert) {
+//   return Container(
+//     margin: const EdgeInsets.only(top: 10),
+//     decoration: BoxDecoration(
+//       color: Colors.grey[900],
+//       borderRadius: BorderRadius.circular(12),
+//     ),
+//     child: Stack(
+//       children: [
+//         // --- Contenido principal ---
+//         Column(
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             if (alert['imageUrl'] != null && alert['imageUrl'].toString().isNotEmpty)
+//               ClipRRect(
+//                 borderRadius:
+//                     const BorderRadius.vertical(top: Radius.circular(12)),
+//                 child: Image.network(
+//                   alert['imageUrl'],
+//                   height: 150,
+//                   width: double.infinity,
+//                   fit: BoxFit.cover,
+//                 ),
+//               ),
+//             Padding(
+//               padding: const EdgeInsets.all(10.0),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Text(
+//                     alert['title'] ?? 'Sin título',
+//                     style: const TextStyle(
+//                       fontSize: 16,
+//                       fontWeight: FontWeight.bold,
+//                       fontFamily: 'samsungsharpssans',
+//                     ),
+//                   ),
+//                   const SizedBox(height: 5),
+//                   Text(
+//                     alert['description'] ?? '',
+//                     style: const TextStyle(
+//                       fontSize: 14,
+//                       fontFamily: 'samsungsharpssans',
+//                     ),
+//                   ),
+//                   const SizedBox(height: 5),
+//                   Text(
+//                     "Tipo: ${alert['alertType']}",
+//                     style: const TextStyle(
+//                       fontSize: 13,
+//                       color: Colors.grey,
+//                       fontFamily: 'samsungsharpssans',
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
 
-        // --- Botón de cerrar ---
-        Positioned(
-          top: 4,
-          right: 4,
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                selectedAlert = null; // 🔥 Oculta la card
-              });
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.close,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+//         // --- Botón de cerrar ---
+//         Positioned(
+//           top: 4,
+//           right: 4,
+//           child: InkWell(
+//             onTap: () {
+//               setState(() {
+//                 selectedAlert = null; // 🔥 Oculta la card
+//               });
+//             },
+//             borderRadius: BorderRadius.circular(20),
+//             child: Container(
+//               padding: const EdgeInsets.all(4),
+//               decoration: BoxDecoration(
+//                 color: Colors.black54,
+//                 shape: BoxShape.circle,
+//               ),
+//               child: const Icon(
+//                 Icons.close,
+//                 color: Colors.white,
+//                 size: 18,
+//               ),
+//             ),
+//           ),
+//         ),
+//       ],
+//     ),
+//   );
+// }
 
 }
