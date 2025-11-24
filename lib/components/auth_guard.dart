@@ -9,12 +9,24 @@ class AuthGuard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      // Redirige al login si no hay sesión
-      return const LoginScreen();
-    } else {
-      return child;
-    }
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Mientras Firebase decide si hay sesión
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Si no hay sesión → Login
+        if (!snapshot.hasData) {
+          return const LoginScreen();
+        }
+
+        // Si hay sesión → Pantalla protegida
+        return child;
+      },
+    );
   }
 }

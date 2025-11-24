@@ -124,14 +124,14 @@ class AlertCard extends StatelessWidget {
                        const SizedBox(width: 155),
             Column(
               children: [
-                Row(
-                  children: const [
-                    Icon(Icons.favorite_border, color: Colors.white70, size: 22),
-                    SizedBox(width: 5),
-                    Icon(Icons.chat_bubble_outline, color: Colors.white70, size: 22),
+                // Row(
+                //   children: const [
+                //     Icon(Icons.favorite_border, color: Colors.white70, size: 22),
+                //     SizedBox(width: 5),
+                //     Icon(Icons.chat_bubble_outline, color: Colors.white70, size: 22),
                     
-                  ],
-                ),
+                //   ],
+                // ),
                  GestureDetector(
                         onTap: onDetailsPressed,
                         child: const Text(

@@ -201,11 +201,6 @@ void _sendAlert() async {
     return;
   }
  
-  
-  // ----------------------------------------------------
-  // LÓGICA DE ENVÍO FINAL (Asumimos que el código es asíncrono)
-  // ----------------------------------------------------
-  
   setState(() { _isSending = true; });
 
     String? imageUrl;

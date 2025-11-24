@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:quicksosapp/components/alert_card.dart';
 import 'package:quicksosapp/components/alert_filters.dart';
+import 'package:quicksosapp/screens/details_screen.dart';
 
 class AlertScreen extends StatefulWidget {
   const AlertScreen({super.key});
@@ -91,6 +92,8 @@ class _AlertScreenState extends State<AlertScreen> {
                   final data = doc.data() as Map<String, dynamic>;
 
                   return {
+                    "id": doc.id,
+                    "uid": data["uid"] ?? "",
                     "type": data['alertType'] ?? 'Desconocido',
                     "time": _formatDate(data['createdAt']),
                     "address": data['description'] ?? 'Sin dirección',
@@ -103,11 +106,11 @@ class _AlertScreenState extends State<AlertScreen> {
 
                 // 🔍 Filtro y búsqueda
                 final filteredAlerts = alerts.where((alert) {
-                  final matchesFilter = activeFilter == "All" ||
-                      alert["type"]
-                          .toString()
-                          .toLowerCase()
-                          .contains(activeFilter.toLowerCase());
+                  final matchesFilter =
+                      activeFilter == "All" ||
+                      alert["type"].toString().toLowerCase().contains(
+                        activeFilter.toLowerCase(),
+                      );
 
                   final matchesSearch = alert["address"]
                       .toString()
@@ -118,46 +121,72 @@ class _AlertScreenState extends State<AlertScreen> {
                 }).toList();
 
                 // ✅ ListView sin overflow
-               return LayoutBuilder(
-  builder: (context, constraints) {
-    final safeWidth = constraints.maxWidth; // 🔒 ancho exacto del layout
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final safeWidth =
+                        constraints.maxWidth; // 🔒 ancho exacto del layout
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      itemCount: filteredAlerts.length,
-      itemBuilder: (context, index) {
-        final alert = filteredAlerts[index];
+                    return ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      itemCount: filteredAlerts.length,
+                      itemBuilder: (context, index) {
+                        final alert = filteredAlerts[index];
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Align(
-            alignment: Alignment.center, // 📏 centra y recorta automáticamente
-            child: SizedBox(
-              width: safeWidth - 16, // 🧩 evita el overflow exacto
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12), // evita sombras fuera del frame
-                child: AlertCard(
-                  type: alert["type"],
-                  time: alert["time"],
-                  description: alert["address"],
-                  priority: alert["priority"],
-                  imageUrl: alert["imageUrl"],
-                  priorityColor: alert["priorityColor"],
-                  icon: alert["icon"],
-                  onDetailsPressed: () {
-                    debugPrint("Ver detalles de ${alert['type']}");
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Align(
+                            alignment: Alignment
+                                .center, // 📏 centra y recorta automáticamente
+                            child: SizedBox(
+                              width:
+                                  safeWidth - 16, // 🧩 evita el overflow exacto
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  12,
+                                ), // evita sombras fuera del frame
+                                child: AlertCard(
+                                  type: alert["type"],
+                                  time: alert["time"],
+                                  description: alert["address"],
+                                  priority: alert["priority"],
+                                  imageUrl: alert["imageUrl"],
+                                  priorityColor: alert["priorityColor"],
+                                  icon: alert["icon"],
+                                  onDetailsPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DetailsScreen(
+                                          alertId:
+                                              snapshot.data!.docs[index].id,
+                                          alert: {
+                                            "id": snapshot.data!.docs[index].id,
+                                            "type": alert["type"],
+                                            "time": alert["time"],
+                                            "description": alert["address"],
+                                            "priority": alert["priority"],
+                                            "priorityColor":
+                                                alert["priorityColor"],
+                                            "imageUrl": alert["imageUrl"],
+                                            "creatorId": alert["uid"] ?? "",
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
                   },
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  },
-);
-
+                );
               },
             ),
           ),
